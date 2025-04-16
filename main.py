@@ -1,18 +1,26 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-import tensorflow as tf
 from dotenv import load_dotenv
 from agents.paw_predictor_agent import PawPredictorAgent
+from agents.paw_retriever_agent import PawRetrieverAgent
 
 def main():
     load_dotenv()
-    agent = PawPredictorAgent(
+    # Initialize agents
+    predictor = PawPredictorAgent(
         model_path="Models/Paw Detector Final Model.keras",
         labels_path="Dataset/labels.csv",
         groq_api_key=os.getenv("GROQ_API_KEY")
-    )   
-    test_image_path = "Dataset/golden_retriever.jpg"
-    response = agent.run(f"Can you identify the dog breed in this image: {test_image_path}")
-    print(response)
+    )
+    retriever = PawRetrieverAgent(groq_api_key=os.getenv("GROQ_API_KEY"))
+    
+    image_path = "Dataset/golden_retriever.jpg"
+    prediction = predictor.run(f"Identify the dog breed in: {image_path}")
+    breed = prediction.split("is a ")[1].split(" with")[0].strip() if "is a " in prediction else None
+    print(prediction)
+    if breed:
+        print("\nBREED INFORMATION:")
+        print(retriever.run(f"Tell me about {breed}"))
+
 if __name__ == "__main__":
     main()
