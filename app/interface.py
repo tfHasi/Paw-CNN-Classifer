@@ -36,9 +36,9 @@ if "chatbot" not in st.session_state:
         st.session_state.initialization_error = str(e)
 
 # App header
-st.title("🐾 Paw Detective 🐾")
+st.title("🐾 Paw Detective at your service!🐾")
 st.markdown("""
-Upload your cute doggie's image and our AI agents will identify the breed and provide detailed information!
+Upload your cute doggie's image and our AI agents will help you identify the breed and provide information!
 """)
 
 if "initialization_error" in st.session_state and st.session_state.initialization_error:
@@ -47,12 +47,11 @@ if "initialization_error" in st.session_state and st.session_state.initializatio
 
 # Sidebar for image upload
 with st.sidebar:
-    st.header("Upload Dog Image")
     with st.container():
-        uploaded_file = st.file_uploader("Choose a dog image...", type=["jpg", "jpeg", "png"])
+        uploaded_file = st.file_uploader("Upload Your Dog's Image", type=["jpg", "jpeg", "png"])
         if uploaded_file is not None:
             image = Image.open(uploaded_file)
-            st.image(image, caption="Uploaded Image", use_column_width=True)
+            st.image(image, caption="Uploaded Image", use_container_width=True)
             # Save image to temporary file
             temp_dir = tempfile.gettempdir()
             image_path = os.path.join(temp_dir, f"dog_image_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.jpg")
@@ -84,7 +83,6 @@ with chat_container:
 # Chat input
 if prompt := st.chat_input("Ask about the identified breed or upload a new image..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
-    
     with st.spinner("Thinking..."):
         try:
             response = st.session_state.chatbot.process_message(prompt)
@@ -92,7 +90,6 @@ if prompt := st.chat_input("Ask about the identified breed or upload a new image
         except Exception as e:
             error_msg = f"Error: {str(e)}"
             st.session_state.messages.append({"role": "assistant", "content": error_msg})
-    
     st.rerun()
 
 # App footer
