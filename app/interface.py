@@ -36,12 +36,11 @@ if "chatbot" not in st.session_state:
         st.session_state.initialization_error = str(e)
 
 # App header
-st.title("🐾 Paw Detector: Dog Breed Identifier 🐾")
+st.title("🐾 Paw Detective 🐾")
 st.markdown("""
 Upload your cute doggie's image and our AI agents will identify the breed and provide detailed information!
 """)
 
-# Error handling for initialization
 if "initialization_error" in st.session_state and st.session_state.initialization_error:
     st.error(f"Error initializing the application: {st.session_state.initialization_error}")
     st.stop()
@@ -51,19 +50,15 @@ with st.sidebar:
     st.header("Upload Dog Image")
     with st.container():
         uploaded_file = st.file_uploader("Choose a dog image...", type=["jpg", "jpeg", "png"])
-        
         if uploaded_file is not None:
             image = Image.open(uploaded_file)
             st.image(image, caption="Uploaded Image", use_column_width=True)
-            
             # Save image to temporary file
             temp_dir = tempfile.gettempdir()
             image_path = os.path.join(temp_dir, f"dog_image_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.jpg")
             image.save(image_path)
-            
             if st.button("Identify Breed", key="identify_button"):
                 st.session_state.messages.append({"role": "user", "content": "What breed is this dog?", "image": image})
-                
                 with st.spinner("Identifying the curious paw..."):
                     try:
                         # Process the image using our chatbot
@@ -72,7 +67,6 @@ with st.sidebar:
                     except Exception as e:
                         error_msg = f"Error processing image: {str(e)}"
                         st.session_state.messages.append({"role": "assistant", "content": error_msg})
-                
                 st.rerun()
 
 # Main chat interface
