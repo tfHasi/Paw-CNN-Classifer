@@ -6,26 +6,55 @@ import tempfile
 import datetime
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from app.chatbot import DogBreedChatbot
+
 MODEL_PATH = "Models/Paw Detector Final Model.keras"
 LABELS_PATH = "Dataset/labels.csv"
+TEMP_DIR = tempfile.gettempdir()
 
-st.set_page_config(
-    page_title="Paw Detector!",
-    page_icon="🐾",
-    layout="wide"
-)
-
-# Initialize session state variables
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+def initialize_app():
+    st.set_page_config(
+        page_title="Paw Detector",
+        page_icon="🐾",
+        layout="wide",
+        initial_sidebar_state="collapsed"
+    )
     
-if "chatbot" not in st.session_state:
-    from dotenv import load_dotenv
-    load_dotenv()
-    groq_api_key = os.getenv("GROQ_API_KEY")
+    # Add custom CSS to maximize width
+    st.markdown("""
+        <style>
+            .main .block-container {
+                max-width: 100%;
+                padding-left: 2rem;
+                padding-right: 2rem;
+            }
+            .stApp {
+                max-width: 100%;
+            }
+            .stChatMessage {
+                max-width: 100%;
+            }
+            .stImage {
+                max-width: 100%;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+    
+    if "messages" not in st.session_state:
+        st.session_state.messages = []   
+    if "chatbot" not in st.session_state:
+        initialize_chatbot()
+    
+    if "initialization_error" in st.session_state and st.session_state.initialization_error:
+        st.error(f"Error initializing the application: {st.session_state.initialization_error}")
+        st.stop()
+
+def initialize_chatbot():
     try:
+        from dotenv import load_dotenv
+        load_dotenv()
+        groq_api_key = os.getenv("GROQ_API_KEY")
+        
         st.session_state.chatbot = DogBreedChatbot(
             model_path=MODEL_PATH,
             labels_path=LABELS_PATH,
@@ -35,53 +64,80 @@ if "chatbot" not in st.session_state:
     except Exception as e:
         st.session_state.initialization_error = str(e)
 
-# App header
-st.title("🐾 Paw Detective at your service!🐾")
-st.markdown("""
-Upload your cute doggie's image and our AI agents will help you identify the breed and provide information!
-""")
+def create_sidebar():
+    with st.sidebar:
+        st.title("🐾 Paw Detective")
+        with st.expander("ℹ️ Help & Information", expanded=True):
+            st.markdown("""
+            ### How to use Paw Detector:
+            1. **Upload** your dog's picture using the form below
+            2. Click **Identify Breed** to analyze the image
+            3. **Ask questions** about the identified breed
+            4. Upload a **new image** anytime to identify another breed
+            
+            ### About Paw Detector
+            Paw Detector uses a specialized deep learning model named MobileNetV2 to identify dog breeds and provides detailed information about each breed's characteristics, temperament, care requirements, and more!
+            """)
 
-if "initialization_error" in st.session_state and st.session_state.initialization_error:
-    st.error(f"Error initializing the application: {st.session_state.initialization_error}")
-    st.stop()
+def process_image(image, image_path):
+    st.session_state.messages.append({
+        "role": "user",
+        "content": "What breed is this dog?",
+        "image": image
+    })
+    
+    with st.spinner("Identifying the curious paw..."):
+        try:
+            response = st.session_state.chatbot.process_message("What breed is this dog?", image_path)
+            st.session_state.messages.append({"role": "assistant", "content": response})
+        except Exception as e:
+            error_msg = f"Error processing image: {str(e)}"
+            st.session_state.messages.append({"role": "assistant", "content": error_msg})
+    
+    st.rerun()
 
-# Sidebar for image upload
-with st.sidebar:
-    with st.container():
-        uploaded_file = st.file_uploader("Upload Your Dog's Image", type=["jpg", "jpeg", "png"])
-        if uploaded_file is not None:
-            image = Image.open(uploaded_file)
-            st.image(image, caption="Uploaded Image", use_container_width=True)
-            # Save image to temporary file
-            temp_dir = tempfile.gettempdir()
-            image_path = os.path.join(temp_dir, f"dog_image_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.jpg")
-            image.save(image_path)
-            if st.button("Identify Breed", key="identify_button"):
-                st.session_state.messages.append({"role": "user", "content": "What breed is this dog?", "image": image})
-                with st.spinner("Identifying the curious paw..."):
-                    try:
-                        # Process the image using our chatbot
-                        response = st.session_state.chatbot.process_message("What breed is this dog?", image_path)
-                        st.session_state.messages.append({"role": "assistant", "content": response})
-                    except Exception as e:
-                        error_msg = f"Error processing image: {str(e)}"
-                        st.session_state.messages.append({"role": "assistant", "content": error_msg})
-                st.rerun()
+def create_chat_interface():
+    # Create a container for the header
+    header_container = st.container()
+    with header_container:
+        st.markdown("<h1 style='text-align: center;'><b>🐾 Paw Detective at your service 🐾</b></h1>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center;'>Upload your cute doggie's image and our AI agents will identify the breed for you!</p>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center;'>Upload Your Dog's Image</h3>", unsafe_allow_html=True)
+    
+    # Create a container for the upload section
+    upload_container = st.container()
+    with upload_container:
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            uploaded_file = st.file_uploader("Upload", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
+            if uploaded_file is not None:
+                image = Image.open(uploaded_file)
+                image_path = os.path.join(TEMP_DIR, f"dog_image_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.jpg")
+                image.save(image_path)
+                if st.button("🔍 Identify Breed", key="identify_button", use_container_width=True):
+                    process_image(image, image_path)
+    
+    # Create a container for the chat section
+    chat_container = st.container()
+    with chat_container:
+        message_area = st.container()
+        with message_area:
+            for message in st.session_state.messages:
+                with st.chat_message(message["role"]):
+                    if "image" in message:
+                        # Center the image
+                        col1, col2, col3 = st.columns([1, 2, 1])
+                        with col2:
+                            st.image(message["image"], width=400)
+                    st.markdown(message["content"])
+    
+    # Create a container for the input section
+    input_container = st.container()
+    with input_container:
+        if prompt := st.chat_input("Woof! Woof! Woof!"):
+            process_chat_message(prompt)
 
-# Main chat interface
-st.header("Chat with Paw Detector")
-
-# Display chat messages
-chat_container = st.container()
-with chat_container:
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            if "image" in message:
-                st.image(message["image"], width=300)
-            st.markdown(message["content"])
-
-# Chat input
-if prompt := st.chat_input("Ask about the identified breed or upload a new image..."):
+def process_chat_message(prompt):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.spinner("Thinking..."):
         try:
@@ -92,15 +148,14 @@ if prompt := st.chat_input("Ask about the identified breed or upload a new image
             st.session_state.messages.append({"role": "assistant", "content": error_msg})
     st.rerun()
 
-# App footer
-st.markdown("---")
-st.markdown("""
-### How to use the Paw Detector:
-1. **Upload** your dog's picture using the sidebar
-2. Click **Identify Breed** to analyze the image
-3. **Ask questions** about the identified breed
-4. Upload a **new image** anytime to identify another breed
+def main():
+    initialize_app()
+    create_sidebar()
+    col1, col2 = st.columns([5, 1])
+    with col1:
+        create_chat_interface()
+    with col2:
+        pass
 
-### About Paw Detector
-Paw Detector uses a specialized deep learning model (MobileNetV2) to identify dog breeds and provides detailed information about each breed's characteristics, temperament, care requirements, and more!
-""")
+if __name__ == "__main__":
+    main()
