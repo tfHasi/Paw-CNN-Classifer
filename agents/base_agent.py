@@ -2,6 +2,7 @@ from langchain.agents import Tool, AgentExecutor, create_react_agent
 from langchain_groq import ChatGroq
 from langchain.prompts import PromptTemplate
 import os
+import re
 
 class PawAgent:
     def __init__(self, groq_api_key=None):
@@ -28,5 +29,13 @@ class PawAgent:
     def run(self, query: str) -> str:
         if not self.agent_executor:
             raise ValueError("Agent executor not initialized. Make sure to call setup_agent() in the child class.")
-        
-        return self.agent_executor.invoke({"input": query})["output"]
+        try:
+            response = self.agent_executor.invoke({"input": query})
+            if "output" in response:
+                final_answer_match = re.search(r"Final Answer:(.*?)$", response["output"], re.DOTALL)
+                if final_answer_match:
+                    return final_answer_match.group(1).strip()
+                return response["output"]
+            return "No response generated."
+        except Exception as e:
+            return f"Error during execution: {str(e)}"
