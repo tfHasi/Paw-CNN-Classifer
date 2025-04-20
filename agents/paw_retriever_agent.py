@@ -1,8 +1,7 @@
-# agents/paw_retriever_agent.py
 from langchain.agents import Tool
-from langchain.prompts import PromptTemplate
 from .base_agent import PawAgent
 from tools.paw_retriever_tool import PawRetrieverTool
+from prompts import get_retriever_prompt
 
 class PawRetrieverAgent(PawAgent):
     def __init__(self, groq_api_key=None):
@@ -15,7 +14,7 @@ class PawRetrieverAgent(PawAgent):
                 description="Retrieves detailed information about a specific dog breed. Input should be the name of the dog breed."
             )
         ]
-        prompt = self._create_prompt()
+        prompt = get_retriever_prompt()
         self.agent_executor = self._create_agent(self.tools, prompt)
     
     def _retrieve_breed_info(self, breed_name: str) -> str:
@@ -25,42 +24,20 @@ class PawRetrieverAgent(PawAgent):
         result = self.retriever_tool.scrape_breed_info(breed_name)
         if not result["success"] or len(result["content"]) == 0:
             return f"Error retrieving information for {breed_name}. {result.get('error', '')}"
+        return self._format_breed_info(result["content"])
+    
+    def _format_breed_info(self, content_dict):
+        formatted_text = ""
+
+        for source, data in content_dict.items():
+            formatted_text += f"===== SOURCE: {source.upper()} =====\n\n"
+            if "general_info" in data and data["general_info"]:
+                formatted_text += "GENERAL INFO:\n"
+                for key, value in data["general_info"].items():
+                    formatted_text += f"- {key}: {value}\n"
+                formatted_text += "\n"
+            for section in ["temperament", "health", "history", "care"]:
+                if section in data and data[section]:
+                    formatted_text += f"{section.upper()}:\n{data[section]}\n\n"
         
-        return str(result["content"])
-
-    def _create_prompt(self) -> PromptTemplate:
-        template = """You are a dog breed information specialist.
-Your task is to provide detailed, well-organized information about dog breeds based on web data.
-
-When a user asks about a specific dog breed, follow these steps:
-1. Use the DogBreedInfoRetriever tool to gather information about the breed
-2. Summarize and organize the information into these sections:
-   - General Characteristics
-   - Temperament and Personality
-   - Care Requirements
-   - Health Considerations
-   - History and Background
-
-Make your response conversational, informative, and helpful for potential dog owners.
-Present the information clearly, and mention when sources disagree about particular characteristics.
-
-You have access to the following tools:
-
-{tools}
-
-Use the following format:
-
-Question: the input question you must answer
-Thought: you should always think about what to do
-Action: the action to take, should be one of [{tool_names}]
-Action Input: the input to the action
-Observation: the result of the action
-... (this Thought/Action/Action Input/Observation can repeat N times)
-Thought: I now know the final answer
-Final Answer: the final answer to the original input question
-
-Begin!
-
-Question: {input}
-{agent_scratchpad}"""   
-        return PromptTemplate.from_template(template)
+        return formatted_text
