@@ -1,15 +1,12 @@
-from langchain.agents import Tool, AgentExecutor, create_react_agent
-from langchain_groq import ChatGroq
+# agents/paw_retriever_agent.py
+from langchain.agents import Tool
 from langchain.prompts import PromptTemplate
-import os
+from .base_agent import PawAgent
 from tools.paw_retriever_tool import PawRetrieverTool
 
-class PawRetrieverAgent:
+class PawRetrieverAgent(PawAgent):
     def __init__(self, groq_api_key=None):
-        if groq_api_key:
-            os.environ["GROQ_API_KEY"] = groq_api_key
-        elif "GROQ_API_KEY" not in os.environ:
-            raise ValueError("Groq API key must be provided or set as environment variable")
+        super().__init__(groq_api_key)
         self.retriever_tool = PawRetrieverTool()
         self.tools = [
             Tool(
@@ -18,25 +15,17 @@ class PawRetrieverAgent:
                 description="Retrieves detailed information about a specific dog breed. Input should be the name of the dog breed."
             )
         ]
-        self.llm = ChatGroq(
-            model_name="llama3-70b-8192",
-            temperature=0.2
-        )
         prompt = self._create_prompt()
-        self.agent = create_react_agent(self.llm, self.tools, prompt)
-        self.agent_executor = AgentExecutor.from_agent_and_tools(
-            agent=self.agent,
-            tools=self.tools,
-            verbose=True,
-            handle_parsing_errors=True
-        )
+        self.agent_executor = self._create_agent(self.tools, prompt)
     
     def _retrieve_breed_info(self, breed_name: str) -> str:
         if not breed_name or len(breed_name) < 2:
             return "Error: Please provide a valid dog breed name"
+        
         result = self.retriever_tool.scrape_breed_info(breed_name)
         if not result["success"] or len(result["content"]) == 0:
             return f"Error retrieving information for {breed_name}. {result.get('error', '')}"
+        
         return str(result["content"])
 
     def _create_prompt(self) -> PromptTemplate:
@@ -75,6 +64,3 @@ Begin!
 Question: {input}
 {agent_scratchpad}"""   
         return PromptTemplate.from_template(template)
-    
-    def run(self, query: str) -> str:
-        return self.agent_executor.invoke({"input": query})["output"]
