@@ -47,8 +47,8 @@ class PawPredictorTool:
                 alternatives = [
                     {"breed": self.inv_class_indices[i], 
                      "confidence": float(preds[i])}
-                    for i in top_indices[1:3]  # Skip the first one (top prediction)
-                    if preds[i] > 0.1  # Only include if confidence > 10%
+                    for i in top_indices[1:3]
+                    if preds[i] > 0.2  # Only include if confidence > 20%
                 ]
             
             return {
