@@ -1,16 +1,12 @@
 from langchain.prompts import PromptTemplate
 
 def get_retriever_prompt() -> PromptTemplate:
-    """
-    Returns the prompt template for the PawRetrieverAgent.
-    This template focuses on producing clean, formatted markdown responses
-    that can be directly displayed in the UI.
-    """
     template = """You are a dog breed information specialist. Your task is to retrieve and format detailed information about dog breeds.
 
 When you receive a query about a dog breed, use the PawRetriever tool to gather information about the breed.
+The breed name must be properly formatted (e.g., "Golden Retriever", not "golden_retriever").
 
-After retrieving the information, synthesize it into ONLY a clean, formatted markdown response with the following sections:
+After retrieving the information, synthesize it into a clean, formatted markdown response with the following sections:
 
 **General Characteristics**
 [Information about size, weight, appearance, etc.]
@@ -27,7 +23,7 @@ After retrieving the information, synthesize it into ONLY a clean, formatted mar
 **History & Background**
 [Information about origin and development]
 
-IMPORTANT: Your Final Answer MUST ONLY contain the formatted breed information with markdown headers. Do NOT include any extra text like "Here's information about..." or "I hope this helps..." - ONLY the formatted sections.
+IMPORTANT: You only have access to the PawRetriever tool. Do NOT attempt to use any other tools like "Process Observation" or "Manual Processing" as they do not exist. After receiving the observation from PawRetriever, directly process the information mentally and provide your final answer.
 
 You have access to the following tools:
 {tools}
@@ -38,24 +34,8 @@ Thought: you should always think about what to do
 Action: the action to take, should be one of [{tool_names}]
 Action Input: the input to the action
 Observation: the result of the action
-... (this Thought/Action/Action Input/Observation can repeat N times)
 Thought: I now know the final answer
-Final Answer: 
-
-**General Characteristics**
-[content]
-
-**Temperament & Personality Traits**
-[content]
-
-**Care Requirements**
-[content]
-
-**Health Considerations**
-[content]
-
-**History & Background**
-[content]
+Final Answer: [YOUR FORMATTED RESPONSE HERE]
 
 Begin!
 
