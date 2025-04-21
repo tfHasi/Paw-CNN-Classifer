@@ -48,10 +48,11 @@ class DogBreedChatbot:
         prediction_result = self.predictor_agent.run(f"Identify the dog breed in: {image_path}")
         breed_name = self._extract_breed_from_prediction(prediction_result)
         confidence_str = self._extract_confidence_from_prediction(prediction_result)
+        confidence_value = self._extract_confidence_value(prediction_result)
         alternatives = []
         alt_matches = re.findall(r"Alternative \d+: ([A-Za-z_]+) \(([0-9.]+)%\)", prediction_result)
         for alt_breed, alt_conf in alt_matches:
-            if float(alt_conf) > 20: # Only include alternatives with >20% confidence
+            if float(alt_conf) > 20:  # Only include alternatives with >20% confidence
                 alternatives.append((alt_breed, float(alt_conf)))
         
         if breed_name:
@@ -59,13 +60,17 @@ class DogBreedChatbot:
             formatted_breed = self._format_breed_name(breed_name)
             response = f"🐾 Breed Identification Results\n\n"
             response += f"I've identified this cutie as a **{formatted_breed}**{confidence_str}!\n\n"
+            
             # Add alternatives if confidence is low
-            if "low confidence" in confidence_str and alternatives:
+            if confidence_value < 50 and alternatives:
                 response += "Other possible breeds:\n"
                 for alt_breed, alt_conf in alternatives:
                     formatted_alt = self._format_breed_name(alt_breed)
                     response += f"- {formatted_alt} ({alt_conf:.2f}%)\n"
                 response += "\n"
+                if len(alternatives) > 0:
+                    response += "Learn more about the primary prediction or one of the alternatives? Just say which breed you're interested in.\n\n"
+            
             if self._is_breed_inquiry(message):
                 breed_info = self._get_breed_info(formatted_breed)
                 return f"{response}\n\n{breed_info}"
@@ -73,7 +78,13 @@ class DogBreedChatbot:
                 return f"{response}Would you like to learn more about {formatted_breed}s? Just ask!"
         else:
             return "I couldn't identify a dog breed in this image. Please try another image with a clearer view of the dog."
-    
+
+    def _extract_confidence_value(self, prediction_result: str) -> float:
+        confidence_match = re.search(r"Confidence: ([0-9.]+)%", prediction_result)
+        if confidence_match:
+            return float(confidence_match.group(1))
+        return 0.0
+
     def _extract_breed_from_prediction(self, prediction_result: str) -> Optional[str]:
         breed_match = re.search(r"Breed: ([A-Za-z_]+)", prediction_result)
         if breed_match:
@@ -101,7 +112,7 @@ class DogBreedChatbot:
         breed_info = re.sub(r"Thought:.*?Action:", "", breed_info, flags=re.DOTALL)
         breed_info = re.sub(r"Action Input:.*?Observation:", "", breed_info, flags=re.DOTALL)
         
-        return f"🦮 About {breed_name}\n\n{breed_info}"
+        return f"🦮 About {breed_info}"
     
     def _is_breed_inquiry(self, message: str) -> bool:
         inquiry_phrases = [
