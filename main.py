@@ -13,14 +13,6 @@ def main():
         groq_api_key=os.getenv("GROQ_API_KEY")
     )
     retriever = PawRetrieverAgent(groq_api_key=os.getenv("GROQ_API_KEY"))
-    
-    image_path = "Dataset/golden_retriever.jpg"
-    prediction = predictor.run(f"Identify the dog breed in: {image_path}")
-    breed = prediction.split("is a ")[1].split(" with")[0].strip() if "is a " in prediction else None
-    print(prediction)
-    if breed:
-        print("\nBREED INFORMATION:")
-        print(retriever.run(f"Tell me about {breed}"))
 
 if __name__ == "__main__":
     main()
