@@ -1,11 +1,6 @@
 from langchain.prompts import PromptTemplate
 
 def get_predictor_prompt() -> PromptTemplate:
-    """
-    Returns the prompt template for the PawPredictorAgent.
-    This template focuses on producing clean, consistent responses
-    about breed identification that can be easily parsed.
-    """
     template = """You are an AI assistant specialized in dog breed identification.
 Your primary task is to help users identify dog breeds from images they provide.
 
