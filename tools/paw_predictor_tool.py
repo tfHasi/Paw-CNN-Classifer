@@ -7,14 +7,13 @@ import os
 
 class PawPredictorTool:
     def __init__(self, model_path, labels_path):
-        # Load the model
+        # Load model and labels
         self.model = tf.keras.models.load_model(model_path)
-        # Load labels and create class mapping
-        if os.path.exists(labels_path):
-            self.labels = pd.read_csv(labels_path)
-            self._create_class_mapping()
-        else:
+        if not os.path.exists(labels_path):
             raise FileNotFoundError(f"Labels file not found at {labels_path}")
+            
+        self.labels = pd.read_csv(labels_path)
+        self._create_class_mapping()
         self.IMG_SIZE = (224, 224)
     
     def _create_class_mapping(self):
@@ -24,32 +23,24 @@ class PawPredictorTool:
     
     def predict_breed(self, img_path, confidence_threshold=0.7):
         try:
-            # Load and preprocess the image
+            # Preprocess image
             img = image.load_img(img_path, target_size=self.IMG_SIZE)
-            img_array = image.img_to_array(img)
-            img_array = preprocess_input(np.expand_dims(img_array, axis=0))
+            img_array = preprocess_input(np.expand_dims(image.img_to_array(img), axis=0))
             
-            # Make prediction
+            # Get predictions
             preds = self.model.predict(img_array)[0]
+            top_indices = np.argsort(preds)[-3:][::-1]  # Top 3 predictions
             
-            # Get the top prediction
-            top_index = np.argmax(preds)
-            top_breed = self.inv_class_indices[top_index]
-            top_confidence = float(preds[top_index])
-            
-            # Get alternative predictions (if confidence is low)
+            # Format results
+            top_breed = self.inv_class_indices[top_indices[0]]
+            top_confidence = float(preds[top_indices[0]])
             is_reliable = top_confidence >= confidence_threshold
-            alternatives = []
             
-            if not is_reliable:
-                # Get 2nd and 3rd most likely breeds
-                top_indices = np.argsort(preds)[-3:][::-1]
-                alternatives = [
-                    {"breed": self.inv_class_indices[i], 
-                     "confidence": float(preds[i])}
-                    for i in top_indices[1:3]
-                    if preds[i] > 0.2  # Only include if confidence > 20%
-                ]
+            # Get alternatives if confidence is low
+            alternatives = [
+                {"breed": self.inv_class_indices[i], "confidence": float(preds[i])}
+                for i in top_indices[1:] if preds[i] > 0.2
+            ]
             
             return {
                 "breed": top_breed,
