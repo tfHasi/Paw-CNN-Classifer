@@ -4,12 +4,14 @@ import streamlit as st
 from PIL import Image
 import tempfile
 import datetime
+from pathlib import Path
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+parent_dir = Path(__file__).resolve().parent.parent
+sys.path.append(str(parent_dir))
+
 from app.chatbot import DogBreedChatbot
+from config import PAW_DETECTOR_MODEL, LABELS_PATH
 
-MODEL_PATH = "Models/Paw Detector Final Model.keras"
-LABELS_PATH = "labels.csv"
 TEMP_DIR = tempfile.gettempdir()
 
 def initialize_app():
@@ -20,7 +22,6 @@ def initialize_app():
         initial_sidebar_state="collapsed"
     )
     
-    # Add custom CSS to maximize width
     st.markdown("""
         <style>
             .main .block-container {
@@ -51,11 +52,12 @@ def initialize_app():
 
 def initialize_chatbot():
     try:
-        groq_api_key = st.secrets["GROQ_API_KEY"]
+        # Get API key from Streamlit secrets
+        api_key = st.secrets.get("GROQ_API_KEY")
         st.session_state.chatbot = DogBreedChatbot(
-            model_path=MODEL_PATH,
-            labels_path=LABELS_PATH,
-            groq_api_key=groq_api_key
+            api_key=api_key,
+            model_path=PAW_DETECTOR_MODEL,
+            labels_path=LABELS_PATH
         )
         st.session_state.initialization_error = None
     except Exception as e:
@@ -101,7 +103,6 @@ def create_chat_interface():
         st.markdown("<p style='text-align: center;'>Upload your cute doggie's image and our AI agents will identify the breed for you!</p>", unsafe_allow_html=True)
         st.markdown("<h3 style='text-align: center;'>Upload Your Dog's Image</h3>", unsafe_allow_html=True)
     
-    # Create a container for the upload section
     upload_container = st.container()
     with upload_container:
         col1, col2, col3 = st.columns([1, 2, 1])
@@ -109,12 +110,12 @@ def create_chat_interface():
             uploaded_file = st.file_uploader("Upload", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
             if uploaded_file is not None:
                 image = Image.open(uploaded_file)
-                image_path = os.path.join(TEMP_DIR, f"dog_image_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.jpg")
+                timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                image_path = os.path.join(TEMP_DIR, f"dog_image_{timestamp}.jpg")
                 image.save(image_path)
-                if st.button("🔍 Identify Breed", key="identify_button", use_container_width=True):
+                if st.button("Identify Breed", key="identify_button", use_container_width=True):
                     process_image(image, image_path)
     
-    # Create a container for the chat section
     chat_container = st.container()
     with chat_container:
         message_area = st.container()
@@ -122,13 +123,11 @@ def create_chat_interface():
             for message in st.session_state.messages:
                 with st.chat_message(message["role"]):
                     if "image" in message:
-                        # Center the image
                         col1, col2, col3 = st.columns([1, 2, 1])
                         with col2:
                             st.image(message["image"], width=400)
                     st.markdown(message["content"])
     
-    # Create a container for the input section
     input_container = st.container()
     with input_container:
         if prompt := st.chat_input("Woof! Woof! Woof!"):

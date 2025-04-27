@@ -4,8 +4,9 @@ from tools.paw_retriever_tool import PawRetrieverTool
 from prompts import get_retriever_prompt
 
 class PawRetrieverAgent(PawAgent):
-    def __init__(self, groq_api_key=None):
-        super().__init__(groq_api_key)
+    def __init__(self, api_key=None, model_name=None, temperature=None):
+        super().__init__(api_key=api_key, model_name=model_name, temperature=temperature)
+        
         self.retriever_tool = PawRetrieverTool()
         self.tools = [
             Tool(

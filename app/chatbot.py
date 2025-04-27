@@ -1,24 +1,30 @@
 import os
 import re
-from typing import Dict, Any, List, Optional, Tuple
 import streamlit as st
-
+from typing import Dict, Any, List, Optional, Tuple
 from agents.paw_predictor_agent import PawPredictorAgent
 from agents.paw_retriever_agent import PawRetrieverAgent
+from config import PAW_DETECTOR_MODEL, LABELS_PATH
 
 class DogBreedChatbot:
-    def __init__(self, 
-                 model_path: str = "Models/Paw Detector Final Model.keras",
-                 labels_path: str = "Dataset/labels.csv",
-                 groq_api_key: Optional[str] = None):
-        if groq_api_key is None:
-            groq_api_key = st.secrets["GROQ_API_KEY"]
+    def __init__(self, api_key=None, model_name=None, temperature=None,
+                 model_path=None, labels_path=None):
+        self.api_key = api_key
+        
         self.predictor_agent = PawPredictorAgent(
-            model_path=model_path,
-            labels_path=labels_path,
-            groq_api_key=groq_api_key
+            api_key=self.api_key,
+            model_name=model_name,
+            temperature=temperature,
+            model_path=model_path or PAW_DETECTOR_MODEL,
+            labels_path=labels_path or LABELS_PATH
         )
-        self.retriever_agent = PawRetrieverAgent(groq_api_key=groq_api_key)
+        
+        self.retriever_agent = PawRetrieverAgent(
+            api_key=self.api_key,
+            model_name=model_name,
+            temperature=temperature
+        )
+        
         self.context = {
             "current_breed": None,
             "current_image": None,
@@ -97,7 +103,7 @@ class DogBreedChatbot:
         confidence_match = re.search(r"Confidence: ([0-9.]+)%", prediction_result)
         if confidence_match:
             confidence = float(confidence_match.group(1))
-            if confidence < 50:
+            if confidence < 70:
                 return f" (low confidence: {confidence:.2f}%)"
             return f" ({confidence:.2f}%)"
         return ""
