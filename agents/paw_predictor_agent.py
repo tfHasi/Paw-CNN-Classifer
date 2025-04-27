@@ -6,7 +6,7 @@ from prompts import get_predictor_prompt
 
 class PawPredictorAgent(PawAgent):
     def __init__(self, model_path="models/Paw_Detector_Final_Model.keras", 
-                 labels_path="Dataset/labels.csv",
+                 labels_path="labels.csv",
                  groq_api_key=None):
         super().__init__(groq_api_key)
         self.predictor_tool = PawPredictorTool(model_path, labels_path)
