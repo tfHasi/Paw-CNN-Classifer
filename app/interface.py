@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.chatbot import DogBreedChatbot
 
 MODEL_PATH = "Models/Paw Detector Final Model.keras"
-LABELS_PATH = "Dataset/labels.csv"
+LABELS_PATH = "labels.csv"
 TEMP_DIR = tempfile.gettempdir()
 
 def initialize_app():
@@ -51,10 +51,7 @@ def initialize_app():
 
 def initialize_chatbot():
     try:
-        from dotenv import load_dotenv
-        load_dotenv()
-        groq_api_key = os.getenv("GROQ_API_KEY")
-        
+        groq_api_key = st.secrets["GROQ_API_KEY"]
         st.session_state.chatbot = DogBreedChatbot(
             model_path=MODEL_PATH,
             labels_path=LABELS_PATH,

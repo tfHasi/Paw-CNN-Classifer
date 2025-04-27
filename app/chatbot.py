@@ -1,6 +1,7 @@
 import os
 import re
 from typing import Dict, Any, List, Optional, Tuple
+import streamlit as st
 
 from agents.paw_predictor_agent import PawPredictorAgent
 from agents.paw_retriever_agent import PawRetrieverAgent
@@ -11,9 +12,7 @@ class DogBreedChatbot:
                  labels_path: str = "Dataset/labels.csv",
                  groq_api_key: Optional[str] = None):
         if groq_api_key is None:
-            from dotenv import load_dotenv
-            load_dotenv()
-            groq_api_key = os.getenv("GROQ_API_KEY")
+            groq_api_key = st.secrets["GROQ_API_KEY"]
         self.predictor_agent = PawPredictorAgent(
             model_path=model_path,
             labels_path=labels_path,
@@ -62,7 +61,7 @@ class DogBreedChatbot:
             response += f"I've identified this cutie as a **{formatted_breed}**{confidence_str}!\n\n"
             
             # Add alternatives if confidence is low
-            if confidence_value < 50 and alternatives:
+            if confidence_value < 70 and alternatives:
                 response += "Other possible breeds:\n"
                 for alt_breed, alt_conf in alternatives:
                     formatted_alt = self._format_breed_name(alt_breed)

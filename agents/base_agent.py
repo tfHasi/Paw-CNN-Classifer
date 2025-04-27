@@ -1,14 +1,14 @@
 from langchain.agents import Tool, AgentExecutor, create_react_agent
 from langchain_groq import ChatGroq
 from langchain.prompts import PromptTemplate
-import os
+import streamlit as st
 import re
 
 class PawAgent:
     def __init__(self, groq_api_key=None):
         if groq_api_key:
-            os.environ["GROQ_API_KEY"] = groq_api_key
-        elif "GROQ_API_KEY" not in os.environ:
+            groq_api_key = st.secrets["GROQ_API_KEY"]
+        elif "GROQ_API_KEY" not in st.environ:
             raise ValueError("Groq API key must be provided or set as environment variable")
         self.llm = ChatGroq(
             model_name="llama3-70b-8192",
